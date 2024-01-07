@@ -12,6 +12,9 @@ export default class Browser {
 		return this;
 	}
 
+	close = async () => {
+		await this._browserRef.close();
+	}
 
 	showWindow = (flag) => {
 		flag ? this._headless = false : this._headless = 'new';

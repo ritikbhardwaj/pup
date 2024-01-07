@@ -1,9 +1,12 @@
 import puppeteer from 'puppeteer';
 import Queue from './queue.js';
 import Browser from './browser.js';
+import { stdout } from 'node:process';
+import { Worker } from 'node:worker_threads';
+import { EventEmitter } from 'node:events';
 
 // 10 urls
-const urls = [
+const _urls = [
 	'https://www.decathlon.in/p/8518851/shakers/gallon-bottle-2200-ml-black?id=8518851&type=p',
 	'https://www.decathlon.in/p/8513471/quechua/2-person-camping-tent-mh100?id=8513471&type=p',
 	'https://www.decathlon.in/p/8305983/cycle-pumps/cycling-floor-pump-100?id=8305983&type=p',
@@ -166,20 +169,25 @@ const urls = [
 	'https://www.decathlon.in/p/8786155/men-shoes/men-s-leather-boots-waterproof-vibram-mt500-brown?id=8786155&type=p'
 ]
 
-const State = {
-	'PENDING': 0,
-	'DONE': 1
-};
-
-const MAX_PAGES = 5;
-let Pages = [];
+const urls = _urls.slice(0,1);
+const data = [];
 
 const run = async () => {
 	const browser = await Browser.newBrowser()
-		.showWindow(true)
-		.tabs(6)
+		.showWindow(false)
+		.tabs(2)
 		.launch(puppeteer);
+	const pages = browser.pgRefs;
+	while(urls.length) {
+		for(let page of pages) {
+			const url = urls.pop();
+			await page.goto(url);
+			const element = await page.waitForSelector('span.text-26');
+			const value = await element.evaluate(el => el.textContent);
+			data.push({ url, price: value });
+		}
+	}
+	browser.close();
 }
 
 run();
-
