@@ -8,6 +8,7 @@ export default class Browser {
 		this._browserRef.on('targetdestroyed', this._onPageDestroyed);
 		for(let i = 0; i < this._MAX_PAGES; i++) {
 			this._pageRefs[i] = await this._browserRef.newPage();
+			this._pageRefs[i].setCacheEnabled(false);
 		}
 		return this;
 	}
