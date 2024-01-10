@@ -5,6 +5,7 @@ import { stdout } from 'node:process';
 import { Worker } from 'node:worker_threads';
 import { EventEmitter } from 'node:events';
 import { open } from 'node:fs/promises';
+import Dispatcher from './dispatcher.js';
 
 const fetchUrlsFromFile = () => {
 	return new Promise(async (resolve, reject) => {
@@ -21,6 +22,7 @@ const fetchUrlsFromFile = () => {
 		});
 
 		fileReadStream.on('end', () => {
+			console.log(_newUrls.length);
 			resolve(_newUrls);
 		});
 	});
@@ -29,8 +31,8 @@ const fetchUrlsFromFile = () => {
 
 let pms = [];
 const values = [];
-const TAB_NUMS = 5;
-const TOTAL_TASKS = 160;
+const TAB_NUMS = 3;
+const TOTAL_TASKS = 40;
 
 // const urls = _newUrls.slice(0,TOTAL_TASKS);
 
@@ -53,39 +55,203 @@ const fetchDataFromUrl = async (page, url) => {
 	return Promise.all([pageGotoPromise, elementPromise, valuePromise, titleTextPromise]);
 }
 
-const runBatchCycle = (pages, urls) => {
-	console.log('Remaining Links: ', urls.length);
-	pms = [];
-	for(let page of pages) {
-		pms.push(fetchDataFromUrl(page, urls.pop()));
-	}
-	Promise.all(pms).then(pms => {
-		console.log('Fetched: ', pms.map(pm => ({ title: pm[3].trim(), price: pm[2] })));
-		values.push(pms.map(pm => pm[2]));
-		if(urls.length >= 0) {
-			em.emit('batch-done', pages, urls);
-		}
-	}).catch((err) => {
-		console.log(err);
-		console.log('oops!');
-		if(urls.length >= 0) {
-			em.emit('batch-done', pages, urls);
-		}
-	});
-}
+// const runBatchCycle = (pages, urls) => {
+// 	console.log('Remaining Links: ', urls.length);
+// 	pms = [];
+// 	for(let page of pages) {
+// 		pms.push(fetchDataFromUrl(page, urls.pop()));
+// 	}
+// 	Promise.all(pms.map((ps) => ps.catch(e => Promise.resolve([])))).then(pms => {
+// 		console.log('Fetched: ', pms.map(pm => ({ title: pm[3].trim(), price: pm[2] })));
+// 		values.push(pms.map(pm => pm[2]));
+// 		if(urls.length >= 0) {
+// 			em.emit('batch-done', pages, urls);
+// 		}
+// 	}).catch((err) => {
+// 		console.log(err);
+// 		console.log('oops!');
+// 		if(urls.length >= 0) {
+// 			em.emit('batch-done', pages, urls);
+// 		}
+// 	});
+// }
 
 let browser;
 const run = async () => {
 	const __urls = await fetchUrlsFromFile();
-	console.log('TOTAL URLS: ', __urls.length);
-	console.log('WORKING URLS: ', TOTAL_TASKS);
+	// console.log('TOTAL URLS: ', __urls.length);
+	// console.log('WORKING URLS: ', TOTAL_TASKS);
 	browser = await Browser.newBrowser()
 		.showWindow(false)
-		.tabs(TAB_NUMS)
+		.tabs(8)
 		.launch(puppeteer);
 
-	const pages = browser.pgRefs;
-	runBatchCycle(pages, __urls.splice(0, TOTAL_TASKS));
+	const dispatcher = new Dispatcher(browser, [
+		'https://www.decathlon.in/p/8535863/mountain-bikes/mountain-bike-rockrider-st540?id=8535863&type=p',
+		'https://www.decathlon.in/p/8591166/mountain-bikes/mountain-bike-rockrider-st120?id=8591166&type=p',
+		'https://www.decathlon.in/p/8812099/jogging-clothing/run-warm-long-sleeved-running-t-shirt-red?id=8812099&type=p',
+		'https://www.decathlon.in/p/8398867/jogging-clothing/men-uv-protect-running-t-shirt-black?id=8398867&type=p',
+		'https://www.decathlon.in/p/8751851/jogging-clothing/men-s-running-warm-long-sleeved-t-shirt-warm-500-beige?id=8751851&type=p',
+		'https://www.decathlon.in/p/8776135/jogging-clothing/men-running-tshirt-blue-grey?id=8776135&type=p',
+		'https://www.decathlon.in/p/8487923/jogging-clothing/men-warm-long-sleeved-running-t-shirt-black?id=8487923&type=p',
+		'https://www.decathlon.in/p/8326403/men-tracksuit/men-tracksuit-jacket-polyester-black?id=8326403&type=p',
+		'https://www.decathlon.in/p/8560956/skipping-ropes/skipping-rope-jr100?id=8560956&type=p',
+		'https://www.decathlon.in/p/8731509/backpacks/hiking-backpack-10-l-nh-arpenaz-50?id=8731509&type=p',
+		'https://www.decathlon.in/p/8535863/mountain-bikes/mountain-bike-rockrider-st540?id=8535863&type=p',
+		'https://www.decathlon.in/p/8591166/mountain-bikes/mountain-bike-rockrider-st120?id=8591166&type=p',
+		'https://www.decathlon.in/p/8812099/jogging-clothing/run-warm-long-sleeved-running-t-shirt-red?id=8812099&type=p',
+		'https://www.decathlon.in/p/8398867/jogging-clothing/men-uv-protect-running-t-shirt-black?id=8398867&type=p',
+		'https://www.decathlon.in/p/8751851/jogging-clothing/men-s-running-warm-long-sleeved-t-shirt-warm-500-beige?id=8751851&type=p',
+		'https://www.decathlon.in/p/8776135/jogging-clothing/men-running-tshirt-blue-grey?id=8776135&type=p',
+		'https://www.decathlon.in/p/8487923/jogging-clothing/men-warm-long-sleeved-running-t-shirt-black?id=8487923&type=p',
+		'https://www.decathlon.in/p/8326403/men-tracksuit/men-tracksuit-jacket-polyester-black?id=8326403&type=p',
+		'https://www.decathlon.in/p/8560956/skipping-ropes/skipping-rope-jr100?id=8560956&type=p',
+		'https://www.decathlon.in/p/8731509/backpacks/hiking-backpack-10-l-nh-arpenaz-50?id=8731509&type=p',
+		'https://www.decathlon.in/p/8535863/mountain-bikes/mountain-bike-rockrider-st540?id=8535863&type=p',
+		'https://www.decathlon.in/p/8591166/mountain-bikes/mountain-bike-rockrider-st120?id=8591166&type=p',
+		'https://www.decathlon.in/p/8812099/jogging-clothing/run-warm-long-sleeved-running-t-shirt-red?id=8812099&type=p',
+		'https://www.decathlon.in/p/8398867/jogging-clothing/men-uv-protect-running-t-shirt-black?id=8398867&type=p',
+		'https://www.decathlon.in/p/8751851/jogging-clothing/men-s-running-warm-long-sleeved-t-shirt-warm-500-beige?id=8751851&type=p',
+		'https://www.decathlon.in/p/8776135/jogging-clothing/men-running-tshirt-blue-grey?id=8776135&type=p',
+		'https://www.decathlon.in/p/8487923/jogging-clothing/men-warm-long-sleeved-running-t-shirt-black?id=8487923&type=p',
+		'https://www.decathlon.in/p/8326403/men-tracksuit/men-tracksuit-jacket-polyester-black?id=8326403&type=p',
+		'https://www.decathlon.in/p/8560956/skipping-ropes/skipping-rope-jr100?id=8560956&type=p',
+		'https://www.decathlon.in/p/8731509/backpacks/hiking-backpack-10-l-nh-arpenaz-50?id=8731509&type=p',
+		'https://www.decathlon.in/p/8535863/mountain-bikes/mountain-bike-rockrider-st540?id=8535863&type=p',
+		'https://www.decathlon.in/p/8591166/mountain-bikes/mountain-bike-rockrider-st120?id=8591166&type=p',
+		'https://www.decathlon.in/p/8812099/jogging-clothing/run-warm-long-sleeved-running-t-shirt-red?id=8812099&type=p',
+		'https://www.decathlon.in/p/8398867/jogging-clothing/men-uv-protect-running-t-shirt-black?id=8398867&type=p',
+		'https://www.decathlon.in/p/8751851/jogging-clothing/men-s-running-warm-long-sleeved-t-shirt-warm-500-beige?id=8751851&type=p',
+		'https://www.decathlon.in/p/8776135/jogging-clothing/men-running-tshirt-blue-grey?id=8776135&type=p',
+		'https://www.decathlon.in/p/8487923/jogging-clothing/men-warm-long-sleeved-running-t-shirt-black?id=8487923&type=p',
+		'https://www.decathlon.in/p/8326403/men-tracksuit/men-tracksuit-jacket-polyester-black?id=8326403&type=p',
+		'https://www.decathlon.in/p/8560956/skipping-ropes/skipping-rope-jr100?id=8560956&type=p',
+		'https://www.decathlon.in/p/8731509/backpacks/hiking-backpack-10-l-nh-arpenaz-50?id=8731509&type=p',
+		'https://www.decathlon.in/p/8535863/mountain-bikes/mountain-bike-rockrider-st540?id=8535863&type=p',
+		'https://www.decathlon.in/p/8591166/mountain-bikes/mountain-bike-rockrider-st120?id=8591166&type=p',
+		'https://www.decathlon.in/p/8812099/jogging-clothing/run-warm-long-sleeved-running-t-shirt-red?id=8812099&type=p',
+		'https://www.decathlon.in/p/8398867/jogging-clothing/men-uv-protect-running-t-shirt-black?id=8398867&type=p',
+		'https://www.decathlon.in/p/8751851/jogging-clothing/men-s-running-warm-long-sleeved-t-shirt-warm-500-beige?id=8751851&type=p',
+		'https://www.decathlon.in/p/8776135/jogging-clothing/men-running-tshirt-blue-grey?id=8776135&type=p',
+		'https://www.decathlon.in/p/8487923/jogging-clothing/men-warm-long-sleeved-running-t-shirt-black?id=8487923&type=p',
+		'https://www.decathlon.in/p/8326403/men-tracksuit/men-tracksuit-jacket-polyester-black?id=8326403&type=p',
+		'https://www.decathlon.in/p/8560956/skipping-ropes/skipping-rope-jr100?id=8560956&type=p',
+		'https://www.decathlon.in/p/8731509/backpacks/hiking-backpack-10-l-nh-arpenaz-50?id=8731509&type=p',
+		'https://www.decathlon.in/p/8535863/mountain-bikes/mountain-bike-rockrider-st540?id=8535863&type=p',
+		'https://www.decathlon.in/p/8591166/mountain-bikes/mountain-bike-rockrider-st120?id=8591166&type=p',
+		'https://www.decathlon.in/p/8812099/jogging-clothing/run-warm-long-sleeved-running-t-shirt-red?id=8812099&type=p',
+		'https://www.decathlon.in/p/8398867/jogging-clothing/men-uv-protect-running-t-shirt-black?id=8398867&type=p',
+		'https://www.decathlon.in/p/8751851/jogging-clothing/men-s-running-warm-long-sleeved-t-shirt-warm-500-beige?id=8751851&type=p',
+		'https://www.decathlon.in/p/8776135/jogging-clothing/men-running-tshirt-blue-grey?id=8776135&type=p',
+		'https://www.decathlon.in/p/8487923/jogging-clothing/men-warm-long-sleeved-running-t-shirt-black?id=8487923&type=p',
+		'https://www.decathlon.in/p/8326403/men-tracksuit/men-tracksuit-jacket-polyester-black?id=8326403&type=p',
+		'https://www.decathlon.in/p/8560956/skipping-ropes/skipping-rope-jr100?id=8560956&type=p',
+		'https://www.decathlon.in/p/8731509/backpacks/hiking-backpack-10-l-nh-arpenaz-50?id=8731509&type=p',
+		'https://www.decathlon.in/p/8535863/mountain-bikes/mountain-bike-rockrider-st540?id=8535863&type=p',
+		'https://www.decathlon.in/p/8591166/mountain-bikes/mountain-bike-rockrider-st120?id=8591166&type=p',
+		'https://www.decathlon.in/p/8812099/jogging-clothing/run-warm-long-sleeved-running-t-shirt-red?id=8812099&type=p',
+		'https://www.decathlon.in/p/8398867/jogging-clothing/men-uv-protect-running-t-shirt-black?id=8398867&type=p',
+		'https://www.decathlon.in/p/8751851/jogging-clothing/men-s-running-warm-long-sleeved-t-shirt-warm-500-beige?id=8751851&type=p',
+		'https://www.decathlon.in/p/8776135/jogging-clothing/men-running-tshirt-blue-grey?id=8776135&type=p',
+		'https://www.decathlon.in/p/8487923/jogging-clothing/men-warm-long-sleeved-running-t-shirt-black?id=8487923&type=p',
+		'https://www.decathlon.in/p/8326403/men-tracksuit/men-tracksuit-jacket-polyester-black?id=8326403&type=p',
+		'https://www.decathlon.in/p/8560956/skipping-ropes/skipping-rope-jr100?id=8560956&type=p',
+		'https://www.decathlon.in/p/8731509/backpacks/hiking-backpack-10-l-nh-arpenaz-50?id=8731509&type=p',
+		'https://www.decathlon.in/p/8535863/mountain-bikes/mountain-bike-rockrider-st540?id=8535863&type=p',
+		'https://www.decathlon.in/p/8591166/mountain-bikes/mountain-bike-rockrider-st120?id=8591166&type=p',
+		'https://www.decathlon.in/p/8812099/jogging-clothing/run-warm-long-sleeved-running-t-shirt-red?id=8812099&type=p',
+		'https://www.decathlon.in/p/8398867/jogging-clothing/men-uv-protect-running-t-shirt-black?id=8398867&type=p',
+		'https://www.decathlon.in/p/8751851/jogging-clothing/men-s-running-warm-long-sleeved-t-shirt-warm-500-beige?id=8751851&type=p',
+		'https://www.decathlon.in/p/8776135/jogging-clothing/men-running-tshirt-blue-grey?id=8776135&type=p',
+		'https://www.decathlon.in/p/8487923/jogging-clothing/men-warm-long-sleeved-running-t-shirt-black?id=8487923&type=p',
+		'https://www.decathlon.in/p/8326403/men-tracksuit/men-tracksuit-jacket-polyester-black?id=8326403&type=p',
+		'https://www.decathlon.in/p/8560956/skipping-ropes/skipping-rope-jr100?id=8560956&type=p',
+		'https://www.decathlon.in/p/8731509/backpacks/hiking-backpack-10-l-nh-arpenaz-50?id=8731509&type=p',
+		'https://www.decathlon.in/p/8535863/mountain-bikes/mountain-bike-rockrider-st540?id=8535863&type=p',
+		'https://www.decathlon.in/p/8591166/mountain-bikes/mountain-bike-rockrider-st120?id=8591166&type=p',
+		'https://www.decathlon.in/p/8812099/jogging-clothing/run-warm-long-sleeved-running-t-shirt-red?id=8812099&type=p',
+		'https://www.decathlon.in/p/8398867/jogging-clothing/men-uv-protect-running-t-shirt-black?id=8398867&type=p',
+		'https://www.decathlon.in/p/8751851/jogging-clothing/men-s-running-warm-long-sleeved-t-shirt-warm-500-beige?id=8751851&type=p',
+		'https://www.decathlon.in/p/8776135/jogging-clothing/men-running-tshirt-blue-grey?id=8776135&type=p',
+		'https://www.decathlon.in/p/8487923/jogging-clothing/men-warm-long-sleeved-running-t-shirt-black?id=8487923&type=p',
+		'https://www.decathlon.in/p/8326403/men-tracksuit/men-tracksuit-jacket-polyester-black?id=8326403&type=p',
+		'https://www.decathlon.in/p/8560956/skipping-ropes/skipping-rope-jr100?id=8560956&type=p',
+		'https://www.decathlon.in/p/8731509/backpacks/hiking-backpack-10-l-nh-arpenaz-50?id=8731509&type=p',
+		'https://www.decathlon.in/p/8535863/mountain-bikes/mountain-bike-rockrider-st540?id=8535863&type=p',
+		'https://www.decathlon.in/p/8591166/mountain-bikes/mountain-bike-rockrider-st120?id=8591166&type=p',
+		'https://www.decathlon.in/p/8812099/jogging-clothing/run-warm-long-sleeved-running-t-shirt-red?id=8812099&type=p',
+		'https://www.decathlon.in/p/8398867/jogging-clothing/men-uv-protect-running-t-shirt-black?id=8398867&type=p',
+		'https://www.decathlon.in/p/8751851/jogging-clothing/men-s-running-warm-long-sleeved-t-shirt-warm-500-beige?id=8751851&type=p',
+		'https://www.decathlon.in/p/8776135/jogging-clothing/men-running-tshirt-blue-grey?id=8776135&type=p',
+		'https://www.decathlon.in/p/8487923/jogging-clothing/men-warm-long-sleeved-running-t-shirt-black?id=8487923&type=p',
+		'https://www.decathlon.in/p/8326403/men-tracksuit/men-tracksuit-jacket-polyester-black?id=8326403&type=p',
+		'https://www.decathlon.in/p/8560956/skipping-ropes/skipping-rope-jr100?id=8560956&type=p',
+		'https://www.decathlon.in/p/8731509/backpacks/hiking-backpack-10-l-nh-arpenaz-50?id=8731509&type=p',
+		'https://www.decathlon.in/p/8535863/mountain-bikes/mountain-bike-rockrider-st540?id=8535863&type=p',
+		'https://www.decathlon.in/p/8591166/mountain-bikes/mountain-bike-rockrider-st120?id=8591166&type=p',
+		'https://www.decathlon.in/p/8812099/jogging-clothing/run-warm-long-sleeved-running-t-shirt-red?id=8812099&type=p',
+		'https://www.decathlon.in/p/8398867/jogging-clothing/men-uv-protect-running-t-shirt-black?id=8398867&type=p',
+		'https://www.decathlon.in/p/8751851/jogging-clothing/men-s-running-warm-long-sleeved-t-shirt-warm-500-beige?id=8751851&type=p',
+		'https://www.decathlon.in/p/8776135/jogging-clothing/men-running-tshirt-blue-grey?id=8776135&type=p',
+		'https://www.decathlon.in/p/8487923/jogging-clothing/men-warm-long-sleeved-running-t-shirt-black?id=8487923&type=p',
+		'https://www.decathlon.in/p/8326403/men-tracksuit/men-tracksuit-jacket-polyester-black?id=8326403&type=p',
+		'https://www.decathlon.in/p/8560956/skipping-ropes/skipping-rope-jr100?id=8560956&type=p',
+		'https://www.decathlon.in/p/8731509/backpacks/hiking-backpack-10-l-nh-arpenaz-50?id=8731509&type=p',
+		'https://www.decathlon.in/p/8535863/mountain-bikes/mountain-bike-rockrider-st540?id=8535863&type=p',
+		'https://www.decathlon.in/p/8591166/mountain-bikes/mountain-bike-rockrider-st120?id=8591166&type=p',
+		'https://www.decathlon.in/p/8812099/jogging-clothing/run-warm-long-sleeved-running-t-shirt-red?id=8812099&type=p',
+		'https://www.decathlon.in/p/8398867/jogging-clothing/men-uv-protect-running-t-shirt-black?id=8398867&type=p',
+		'https://www.decathlon.in/p/8751851/jogging-clothing/men-s-running-warm-long-sleeved-t-shirt-warm-500-beige?id=8751851&type=p',
+		'https://www.decathlon.in/p/8776135/jogging-clothing/men-running-tshirt-blue-grey?id=8776135&type=p',
+		'https://www.decathlon.in/p/8487923/jogging-clothing/men-warm-long-sleeved-running-t-shirt-black?id=8487923&type=p',
+		'https://www.decathlon.in/p/8326403/men-tracksuit/men-tracksuit-jacket-polyester-black?id=8326403&type=p',
+		'https://www.decathlon.in/p/8560956/skipping-ropes/skipping-rope-jr100?id=8560956&type=p',
+		'https://www.decathlon.in/p/8731509/backpacks/hiking-backpack-10-l-nh-arpenaz-50?id=8731509&type=p',
+		'https://www.decathlon.in/p/8535863/mountain-bikes/mountain-bike-rockrider-st540?id=8535863&type=p',
+		'https://www.decathlon.in/p/8591166/mountain-bikes/mountain-bike-rockrider-st120?id=8591166&type=p',
+		'https://www.decathlon.in/p/8812099/jogging-clothing/run-warm-long-sleeved-running-t-shirt-red?id=8812099&type=p',
+		'https://www.decathlon.in/p/8398867/jogging-clothing/men-uv-protect-running-t-shirt-black?id=8398867&type=p',
+		'https://www.decathlon.in/p/8751851/jogging-clothing/men-s-running-warm-long-sleeved-t-shirt-warm-500-beige?id=8751851&type=p',
+		'https://www.decathlon.in/p/8776135/jogging-clothing/men-running-tshirt-blue-grey?id=8776135&type=p',
+		'https://www.decathlon.in/p/8487923/jogging-clothing/men-warm-long-sleeved-running-t-shirt-black?id=8487923&type=p',
+		'https://www.decathlon.in/p/8326403/men-tracksuit/men-tracksuit-jacket-polyester-black?id=8326403&type=p',
+		'https://www.decathlon.in/p/8560956/skipping-ropes/skipping-rope-jr100?id=8560956&type=p',
+		'https://www.decathlon.in/p/8731509/backpacks/hiking-backpack-10-l-nh-arpenaz-50?id=8731509&type=p',
+		'https://www.decathlon.in/p/8535863/mountain-bikes/mountain-bike-rockrider-st540?id=8535863&type=p',
+		'https://www.decathlon.in/p/8591166/mountain-bikes/mountain-bike-rockrider-st120?id=8591166&type=p',
+		'https://www.decathlon.in/p/8812099/jogging-clothing/run-warm-long-sleeved-running-t-shirt-red?id=8812099&type=p',
+		'https://www.decathlon.in/p/8398867/jogging-clothing/men-uv-protect-running-t-shirt-black?id=8398867&type=p',
+		'https://www.decathlon.in/p/8751851/jogging-clothing/men-s-running-warm-long-sleeved-t-shirt-warm-500-beige?id=8751851&type=p',
+		'https://www.decathlon.in/p/8776135/jogging-clothing/men-running-tshirt-blue-grey?id=8776135&type=p',
+		'https://www.decathlon.in/p/8487923/jogging-clothing/men-warm-long-sleeved-running-t-shirt-black?id=8487923&type=p',
+		'https://www.decathlon.in/p/8326403/men-tracksuit/men-tracksuit-jacket-polyester-black?id=8326403&type=p',
+		'https://www.decathlon.in/p/8560956/skipping-ropes/skipping-rope-jr100?id=8560956&type=p',
+		'https://www.decathlon.in/p/8731509/backpacks/hiking-backpack-10-l-nh-arpenaz-50?id=8731509&type=p',
+		'https://www.decathlon.in/p/8535863/mountain-bikes/mountain-bike-rockrider-st540?id=8535863&type=p',
+		'https://www.decathlon.in/p/8591166/mountain-bikes/mountain-bike-rockrider-st120?id=8591166&type=p',
+		'https://www.decathlon.in/p/8812099/jogging-clothing/run-warm-long-sleeved-running-t-shirt-red?id=8812099&type=p',
+		'https://www.decathlon.in/p/8398867/jogging-clothing/men-uv-protect-running-t-shirt-black?id=8398867&type=p',
+		'https://www.decathlon.in/p/8751851/jogging-clothing/men-s-running-warm-long-sleeved-t-shirt-warm-500-beige?id=8751851&type=p',
+		'https://www.decathlon.in/p/8776135/jogging-clothing/men-running-tshirt-blue-grey?id=8776135&type=p',
+		'https://www.decathlon.in/p/8487923/jogging-clothing/men-warm-long-sleeved-running-t-shirt-black?id=8487923&type=p',
+		'https://www.decathlon.in/p/8326403/men-tracksuit/men-tracksuit-jacket-polyester-black?id=8326403&type=p',
+		'https://www.decathlon.in/p/8560956/skipping-ropes/skipping-rope-jr100?id=8560956&type=p',
+		'https://www.decathlon.in/p/8731509/backpacks/hiking-backpack-10-l-nh-arpenaz-50?id=8731509&type=p',
+		'https://www.decathlon.in/p/8535863/mountain-bikes/mountain-bike-rockrider-st540?id=8535863&type=p',
+		'https://www.decathlon.in/p/8591166/mountain-bikes/mountain-bike-rockrider-st120?id=8591166&type=p',
+		'https://www.decathlon.in/p/8812099/jogging-clothing/run-warm-long-sleeved-running-t-shirt-red?id=8812099&type=p',
+		'https://www.decathlon.in/p/8398867/jogging-clothing/men-uv-protect-running-t-shirt-black?id=8398867&type=p',
+		'https://www.decathlon.in/p/8751851/jogging-clothing/men-s-running-warm-long-sleeved-t-shirt-warm-500-beige?id=8751851&type=p',
+		'https://www.decathlon.in/p/8776135/jogging-clothing/men-running-tshirt-blue-grey?id=8776135&type=p',
+		'https://www.decathlon.in/p/8487923/jogging-clothing/men-warm-long-sleeved-running-t-shirt-black?id=8487923&type=p',
+		'https://www.decathlon.in/p/8326403/men-tracksuit/men-tracksuit-jacket-polyester-black?id=8326403&type=p',
+		'https://www.decathlon.in/p/8560956/skipping-ropes/skipping-rope-jr100?id=8560956&type=p',
+		'https://www.decathlon.in/p/8731509/backpacks/hiking-backpack-10-l-nh-arpenaz-50?id=8731509&type=p'
+	].splice(0,160));
+
+	dispatcher.start();
+	// const pages = browser.pgRefs;
+	// runBatchCycle(pages, __urls.splice(0, TOTAL_TASKS));
 }
 
 run();

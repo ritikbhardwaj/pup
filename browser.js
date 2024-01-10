@@ -1,14 +1,26 @@
+import Page from './page.js';
+
 // Singleton
 export default class Browser {
 	// Public
 	launch = async (puppeteer) => {
 		this._browserRef = await puppeteer.launch({ headless: this._headless }); 
 		this._onBrowserCreated();
-		this._browserRef.on('targetcreated', this._onPageCreated);
-		this._browserRef.on('targetdestroyed', this._onPageDestroyed);
+		// this._browserRef.on('targetcreated', this._onPageCreated);
+		// this._browserRef.on('targetdestroyed', this._onPageDestroyed);
 		for(let i = 0; i < this._MAX_PAGES; i++) {
-			this._pageRefs[i] = await this._browserRef.newPage();
-			this._pageRefs[i].setCacheEnabled(false);
+			const page = new Page(this);
+			this._pages.push(page);
+
+			// Event handlers
+			page.pageEmitter.on('ready', this._onPageCreated);
+			page.pageEmitter.on('close', () => {
+				this._TOTAL_PAGES--;
+				if(this._TOTAL_PAGES === 0) {
+					this.close();
+				}
+			});
+			// this._pages[i].setCacheEnabled(false);
 		}
 		return this;
 	}
@@ -35,12 +47,16 @@ export default class Browser {
 		return this._instance;
 	} 
 
+	newPage = () => {
+		return this._browserRef.newPage();
+	}
+
 	get totalPages() {
 		return this._TOTAL_PAGES;
 	}
 
-	get pgRefs () {
-		return this._pageRefs;
+	get pages () {
+		return this._pages;
 	}
 
 	get brzref() {
@@ -51,7 +67,7 @@ export default class Browser {
 	constructor() {}
 	static _instance = null;
 	_headless = false;
-	_pageRefs = [];
+	_pages = [];
 	_MAX_PAGES = 5;
 	_TOTAL_PAGES = 0;
 	_browserRef = null;
@@ -61,11 +77,16 @@ export default class Browser {
 		const userAgent = await this._browserRef.userAgent();
 		console.log(`Chrome version: ${version}\nUser Agent: ${userAgent}\nTabs: ${this._MAX_PAGES}\n`);
 	}
-	_onPageCreated = async () => {
-		this._TOTAL_PAGES += 1;
+	_onBrowserDestroyed = () => {
+		console.log('Goodbye!');
 	}
-	_onBrowserDestroyed = async () => {}
+	_onPageCreated = () => {
+		this._TOTAL_PAGES++;
+	}
 	_onPageDestroyed = () => {
-		this._TOTAL_PAGES ? this._TOTAL_PAGES -= 1 : null ;
+		this._TOTAL_PAGES ? this._TOTAL_PAGES -= 1 : 0 ;
+		if(this._TOTAL_PAGES === 0) {
+			this.close();
+		}
 	}
 };
