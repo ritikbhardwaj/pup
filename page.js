@@ -10,18 +10,8 @@ export default class Page extends EventEmitter {
 	// Public
 	constructor(browser, options = {}) {
 		super();
-		// this._ref = browser.newPage(); 
-		// console.log('Page ref in constructor: ', this._ref);
 		this._browser = browser;
 		this._pageEmitter = new EventEmitter();
-		// this._pageEmitter.on('fetch-complete', (url, appendText) => {
-		// 	// this.fetch(url, appendText);
-		// 	console.log('fetch complete');
-		// });
-
-		// this.on('page-close', () => {
-		// 	this.close();
-		// });
 	}
 
 	init = async () => {
@@ -57,19 +47,36 @@ export default class Page extends EventEmitter {
 		}
 	}
 
-	fetch = async (url, appendText = '') => {
-		if(this._state !== State.READY) throw new Error('Page state pending');
-		const link = appendText+url;
-		const pageGotoPromise = this._ref.goto(link);
-		const elementPromise = this._ref.waitForSelector('span.text-26');
-		// const titlePromise = this._ref.waitForSelector('span#productTitle');
-		const valuePromise = elementPromise.then((element) => element.evaluate(el => el.textContent));
-		// const titleTextPromise = titlePromise.then((element) => element.evaluate(el => el.textContent));
-		return Promise.all([pageGotoPromise, elementPromise, valuePromise]).then((data) => {
-			this._pageEmitter.emit('fetchcomplete');
-			return Promise.resolve(data[2]);
+	getValue = async (selector, link) => {
+		const element = await this._ref.waitForSelector(selector.selector);
+		const value = await this._ref.evaluate(el => el.textContent, element);
+		return ({ 
+			key: selector.key,
+			value: selector.filter(value)
 		});
-		
+	}
+
+	// Fetch all selectors
+	fetch = async (scrapeTask, urlPrefix = '') => {
+
+		if ( this._state !== State.READY ) throw new Error('Page state pending');
+
+		if ( scrapeTask === undefined || scrapeTask === null ) throw new Error('ScrapeTask cannot be ' + typeof scrapeTask);
+
+		const link = urlPrefix + scrapeTask.url;
+		const data = [];
+		const valuePms = [];
+
+		await this._ref.goto(link);
+		for(const selector of scrapeTask.selectors) {
+			const pms = this.getValue(selector, link);
+			valuePms.push(pms);	
+		}
+
+		return Promise.all(valuePms).then((values) => {
+			this._pageEmitter.emit('fetchcomplete');
+			return Promise.resolve(values);
+		});
 	}
 
 	//Private
