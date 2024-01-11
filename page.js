@@ -3,7 +3,7 @@ import { EventEmitter } from 'node:events';
 export let State = {
 	PENDING: 'pending',
 	READY: 'ready',
-	CLOSE: 'close'
+	CLOSE: 'close',
 };
 
 export default class Page extends EventEmitter {
@@ -15,18 +15,17 @@ export default class Page extends EventEmitter {
 	}
 
 	init = async () => {
-		if(this._state === State.PENDING) {
+		if (this._state === State.PENDING) {
 			this._pageEmitter.emit('ready');
 			this._state = State.READY;
 			this._ref = await this._browser.newPage();
-
 
 			// TODO: Add page options by iterating
 			// on and object.
 			this._ref.setCacheEnabled(false);
 		}
 		// this._pageEmitter.emit('ready');
-	}
+	};
 
 	get state() {
 		this._state;
@@ -41,43 +40,43 @@ export default class Page extends EventEmitter {
 	}
 
 	close = () => {
-		if(this._state === State.READY) {
+		if (this._state === State.READY) {
 			this._ref.close();
 			this._pageEmitter.emit('close');
 		}
-	}
+	};
 
 	getValue = async (selector, link) => {
 		const element = await this._ref.waitForSelector(selector.selector);
-		const value = await this._ref.evaluate(el => el.textContent, element);
-		return ({ 
+		const value = await this._ref.evaluate((el) => el.textContent, element);
+		return {
 			key: selector.key,
-			value: selector.filter(value)
-		});
-	}
+			value: selector.filter(value),
+		};
+	};
 
 	// Fetch all selectors
 	fetch = async (scrapeTask, urlPrefix = '') => {
+		if (this._state !== State.READY) throw new Error('Page state pending');
 
-		if ( this._state !== State.READY ) throw new Error('Page state pending');
-
-		if ( scrapeTask === undefined || scrapeTask === null ) throw new Error('ScrapeTask cannot be ' + typeof scrapeTask);
+		if (scrapeTask === undefined || scrapeTask === null)
+			throw new Error('ScrapeTask cannot be ' + typeof scrapeTask);
 
 		const link = urlPrefix + scrapeTask.url;
 		const data = [];
 		const valuePms = [];
 
 		await this._ref.goto(link);
-		for(const selector of scrapeTask.selectors) {
+		for (const selector of scrapeTask.selectors) {
 			const pms = this.getValue(selector, link);
-			valuePms.push(pms);	
+			valuePms.push(pms);
 		}
 
 		return Promise.all(valuePms).then((values) => {
 			this._pageEmitter.emit('fetchcomplete');
 			return Promise.resolve(values);
 		});
-	}
+	};
 
 	//Private
 	_browser = null;
@@ -85,4 +84,4 @@ export default class Page extends EventEmitter {
 	_ref = null;
 	_state = State.PENDING;
 	_pageEmitter = null;
-};
+}

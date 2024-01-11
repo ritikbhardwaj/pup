@@ -9,7 +9,7 @@ export default class Dispatcher {
 		// this._scrapeTasks.pop();
 
 		console.log('Total Links: ', scrapeTasks.length)
-
+		
 		this._pages.forEach((page, index) => {
 			page.pageEmitter.on('fetchcomplete', () => {
 				if(this._scrapeTasks.length) {
