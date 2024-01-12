@@ -45,6 +45,10 @@ export default class Page extends HasState {
 		// this._pageEmitter.emit('ready');
 	};
 
+	get id() {
+		return this._id;
+	}
+
 	get ref() {
 		return this._ref;
 	}
@@ -79,7 +83,15 @@ export default class Page extends HasState {
 
 	// Fetch all selectors
 	fetch = async (scrapeTask, urlPrefix = '') => {
-		if (this.state !== PageState.ReadyToProcess) throw new Error('Page is not ready to process');
+		if (this.state !== PageState.ReadyToProcess) {
+			return Promise.resolve({
+				status: PageResponseStatus.Error,
+				url: scrapeTask.url,
+				message
+			});
+			// throw new Error('Page is not ready to process');
+		}
+
 		if (!(scrapeTask instanceof ScrapeTask)) throw new Error('Invalid scrape task');
 
 		const link = urlPrefix + scrapeTask.url;

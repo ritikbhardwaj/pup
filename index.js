@@ -215,7 +215,7 @@ const run = async () => {
 				),
 				new Selector(
 					'price',
-					'span.text-266'
+					'span.text-26'
 				),
 				// new Selector(
 				// 	'rating',

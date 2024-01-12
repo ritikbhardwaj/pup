@@ -1,12 +1,13 @@
 import ScrapeTask from './scrape-task.js';
+import { PageState } from './page.js';
 
 export default class Dispatcher {
 	// Public
 	constructor(browser, scrapeTasks = []) {
 
+		this._browser = browser;
 		this._pages = browser.pages;
 		this._scrapeTasks = scrapeTasks;
-		// this._scrapeTasks.pop();
 
 		console.log('Total Links: ', scrapeTasks.length)
 		
@@ -27,16 +28,24 @@ export default class Dispatcher {
 	// Loop cycle start point
 	start = () => {
 		this._pages.forEach(async (page, index) => {
-			await page.init();
+			try {
+				await page.init();
+			} catch(error) {
+				console.log(`Page: ${page.id} initialized with error.\nError: ${error}`);
+				return;
+			}
 			page.fetch(this._scrapeTasks.pop()).then((data) => {
 				console.log(data);
 			})
 		});
+
+		if(this._pages.filter(p => p.state === PageState.ReadyToProcess).length === 0) {
+			this._browser.close();
+		}
 	}
 
 	// Private
 	_pages;
-
-	// Simple Scrape Task Queue
+	_browser;
 	_scrapeTasks;
 };
