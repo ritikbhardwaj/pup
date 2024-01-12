@@ -13,7 +13,7 @@ export default class Browser {
 			this._pages.push(page);
 
 			// Event handlers
-			page.pageEmitter.on('ready', this._onPageCreated);
+			page.pageEmitter.on('readytoprocess', this._onPageCreated);
 			page.pageEmitter.on('close', () => {
 				this._TOTAL_PAGES--;
 				if(this._TOTAL_PAGES === 0) {

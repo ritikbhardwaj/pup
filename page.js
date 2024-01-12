@@ -1,28 +1,37 @@
 import { EventEmitter } from 'node:events';
 import { randomUUID } from 'node:crypto';
+import ScrapeTask, { SelectorState, TaskState } from './scrape-task.js';
+import HasState from './state.js';
 
 export const PageState = {
-	Processing : 'processing',
-	Standby    : 'standby',
-	Error      : 'error',
+	Initial        : 'initial',	
+	ReadyToProcess : 'readytoprocess',
+	Error          : 'error',
 };
 
-export default class Page extends EventEmitter {
+export default class Page extends HasState {
 	// Public
 	constructor(browser, options = {}) {
 		super();
 		this._id = randomUUID().replaceAll('-', '');
 		this._ref = null;
 		this._browser = browser;
-		this._state.setState(PageState.Standby).reason('');
+		this.setState(PageState.Initial).reason('');
 		this._pageEmitter = new EventEmitter();
+		this._pageEmitter.emit('initial');
 	}
 
 	init = async () => {
-		if (this._state === State.PENDING) {
-			this._pageEmitter.emit('ready');
-			this._state = State.READY;
-			this._ref = await this._browser.newPage();
+		if (this.state === PageState.Initial) {
+			this._pageEmitter.emit('readytoprocess');
+			this.setState(PageState.ReadyToProcess);
+			try {
+				this._ref = await this._browser.newPage();
+			} catch(error) {
+				const { message } = error;
+				this.setState(PageState.Error).reason(message);
+				return Promise.reject(message);
+			}
 
 			// TODO: Add page options by iterating
 			// on and object.
@@ -30,20 +39,6 @@ export default class Page extends EventEmitter {
 		}
 		// this._pageEmitter.emit('ready');
 	};
-
-	setState = (state) => {
-		this._state.s = state;
-		return this;
-	}
-
-	reason = (reason) => {
-		if(typeof reason !== 'string') throw new TypeError('Reason must be a string');
-		this._state.reason = reason;
-	}
-
-	get state() {
-		this._state;
-	}
 
 	get ref() {
 		return this._ref;
@@ -54,39 +49,55 @@ export default class Page extends EventEmitter {
 	}
 
 	close = () => {
-		if (this._state === State.READY) {
+		if (this.state === PageState.ReadyToProcess) {
 			this._ref.close();
 			this._pageEmitter.emit('close');
 		}
 	};
 
-	getValue = async (selector, link) => {
-		const element = await this._ref.waitForSelector(selector.selector);
-		const value = await this._ref.evaluate((el) => el.textContent, element);
+	getValue = async (sltr, link) => {
+		const { selector, timeout } = sltr;
+		let value;
+		try {
+			const element = await this._ref.waitForSelector(selector, { timeout });
+			value = await this._ref.evaluate((el) => el.textContent, element);
+		} catch(error) {
+			const { message } = error;
+			sltr.setState(SelectorState.Failed).reason(message);
+			return Promise.reject(message);
+		} 
 		return {
-			key: selector.key,
-			value: selector.filter(value),
+			key: sltr.key,
+			value: sltr.filter(value),
 		};
 	};
 
 	// Fetch all selectors
 	fetch = async (scrapeTask, urlPrefix = '') => {
-		if (this._state !== State.READY) throw new Error('Page state pending');
-
-		if (scrapeTask === undefined || scrapeTask === null)
-			throw new Error('ScrapeTask cannot be ' + typeof scrapeTask);
+		console.log(this.state);
+		if (this.state !== PageState.ReadyToProcess) throw new Error('Page is not ready to process');
+		if (!(scrapeTask instanceof ScrapeTask)) throw new Error('Invalid scrape task');
 
 		const link = urlPrefix + scrapeTask.url;
 		const data = [];
-		const valuePms = [];
+		const valuePromises = [];
 
-		await this._ref.goto(link);
-		for (const selector of scrapeTask.selectors) {
-			const pms = this.getValue(selector, link);
-			valuePms.push(pms);
+		try {
+			await this._ref.goto(link, { waitUntil: 'domcontentloaded', timeout: scrapeTask.pgNavigationTimeout });
+		} catch(error) {
+			const { message } = error;
+			this.setState(PageState.Error).reason(message);
+			for(const selector of scrapeTask.selectors) {
+				selector.setState(SelectorState.Failed).reason(message);
+			}
+			return Promise.reject(message);
 		}
 
-		return Promise.all(valuePms).then((values) => {
+		for (const selector of scrapeTask.selectors) {
+			valuePromises.push(this.getValue(selector, link));
+		}
+
+		return Promise.allSettled(valuePromises).then((values) => {
 			this._pageEmitter.emit('fetchcomplete');
 			return Promise.resolve(values);
 		});
@@ -96,6 +107,5 @@ export default class Page extends EventEmitter {
 	_id;
 	_ref;
 	_browser;
-	_state;
 	_pageEmitter;
 }

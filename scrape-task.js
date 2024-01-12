@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import HasState from './state.js';
 
 export const SelectorType = {
 	XPath       : 'xpath',
@@ -16,10 +17,10 @@ const State = {
 	Failed   : 'failed',
 	Pending  : 'pending'
 };
-const SelectorState = State;
-const TaskState     = State;
+export const SelectorState = State;
+export const TaskState     = State;
 
-export class Selector {
+export class Selector extends HasState {
 	// Public
 	constructor(
 		key,
@@ -28,6 +29,7 @@ export class Selector {
 		type = SelectorType.CssSelector,
 		timeout = 5000
 		) {
+			super();
 			this._key      = key;
 			this._selector = selector;
 			this._filterFn = filterFn;
@@ -41,6 +43,10 @@ export class Selector {
 		return this._filterFn;
 	}
 
+	get timeout() {
+		return this._timeout;
+	}
+
 	get selector() {
 		return this._selector;
 	}
@@ -49,29 +55,19 @@ export class Selector {
 		return this._key;
 	}
 
-	setState = (state) => {
-		this._state = state;
-		return this;
-	}
-
-	reason = (reason) => {
-		if(typeof reason !== 'string') throw new TypeError('Reason must be string');
-		this._state.reason = reason;
-	}
-
 	// Private
 	_key; 
 	_selector;
 	_type; 
-	_state; 
 	_filterFn;
 	// Selector timeout. page.waitForSelector()
 	_timeout;
 };
 
-export default class ScrapeTask {
+export default class ScrapeTask extends HasState {
 	// Public	
 	constructor(name, url, selectors = [], pgNavigationTimeout = 5000) {
+		super();
 		this._id = randomUUID().replaceAll('-','');
 		this._name      = name;
 		this._url       = url;
@@ -94,14 +90,18 @@ export default class ScrapeTask {
 		return this._url;
 	}
 
+	get pgNavigationTimeout() {
+		return this._pgNavigationTimeout;
+	}
+
 	setState = (s) => {
 		this._state.s = s;
 		return this;
 	}
 
-	reason = (reason) => {
-		if(typeof reason !== 'string') throw new TypeError('Reason must be a string');
-		this._state.reason = reason;
+	reason = (str) => {
+		if(typeof str !== 'string') throw new TypeError('Reason must be a string');
+		this._state.reason = str;
 	}
 
 	get id() {
@@ -120,7 +120,6 @@ export default class ScrapeTask {
 	_id;
 	_name;
 	_selectors;
-	_state; 
 	_url;
 	// Navigation timeout. page.goto()
 	_pgNavigationTimeout;

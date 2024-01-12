@@ -28,7 +28,7 @@ const fetchUrlsFromFile = () => {
 const run = async () => {
 	const __urls = await fetchUrlsFromFile();
 	const browser = await Browser.newBrowser()
-		.showWindow(false)
+		.showWindow(true)
 		.tabs(2)
 		.launch(puppeteer);
 
@@ -193,7 +193,7 @@ const run = async () => {
 		'https://www.decathlon.in/p/8326403/men-tracksuit/men-tracksuit-jacket-polyester-black?id=8326403&type=p',
 		'https://www.decathlon.in/p/8560956/skipping-ropes/skipping-rope-jr100?id=8560956&type=p',
 		'https://www.decathlon.in/p/8731509/backpacks/hiking-backpack-10-l-nh-arpenaz-50?id=8731509&type=p'
-	].splice(0,160);
+	].splice(0,5);
 
 	const amazonLinks = [
 		'https://www.amazon.in/Engage-Cool-Marine-Pocket-Perfume/dp/B079H12TC8/ref=sr_1_156?crid=3GFMFR248N1O3&keywords=perfumes&qid=1704825966&sprefix=perfumes%2Caps%2C559&sr=8-156',
@@ -203,31 +203,32 @@ const run = async () => {
 		'https://www.amazon.in/Orpat-OEH-1220-2000-Watt-Heater-White/dp/B00B7GHQQW/ref=zg_bs_c_kitchen_d_sccl_1/261-6995092-7112216?pd_rd_w=z868d&content-id=amzn1.sym.7dd29d48-66c1-486c-967d-2ed40101f2ea&pf_rd_p=7dd29d48-66c1-486c-967d-2ed40101f2ea&pf_rd_r=HCSCDR4ZVW8RF4J8GAPF&pd_rd_wg=Jl7db&pd_rd_r=f5bad811-e9cf-4297-a6fa-884334a46978&pd_rd_i=B00B7GHQQW&psc=1'		
 	]
 	const tasks = [];
-	for(const link of amazonLinks) {
+	for(const link of demoLinks) {
 		tasks.push(new ScrapeTask(
 			'Amazon Product',
 			link,
 			[
 				new Selector(
-					'product_title',
-					'span#productTitle',
-					(data) => data.trim()
-				),
-				new Selector(
 					'price',
-					'span.a-price-whole',
-					(data) => data.substring(0,data.length-1)
-				),
-				new Selector(
-					'rating',
-					'span#acrPopover > span.a-declarative > a > span',
+					'span.text-26',
 					(data) => data.trim()
 				),
-				new Selector(
-					'total_reviews',
-					'span#acrCustomerReviewText',
-					(data) => data.split(' ')[0]
-				)
+				// new Selector(
+				// 	'price',
+				// 	'span.a-price-whole',
+				// 	(data) => data.substring(0,data.length-1)
+				// ),
+				// new Selector(
+				// 	'rating',
+				// 	// 'span#acrPopover > span.a-declarative > a > span',
+				// 	'',
+				// 	(data) => data.trim()
+				// ),
+				// new Selector(
+				// 	'total_reviews',
+				// 	'span#acrCustomerReviewText',
+				// 	(data) => data.split(' ')[0]
+				// )
 			]
 		))
 	}
