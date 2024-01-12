@@ -28,8 +28,8 @@ const fetchUrlsFromFile = () => {
 const run = async () => {
 	const __urls = await fetchUrlsFromFile();
 	const browser = await Browser.newBrowser()
-		.showWindow(true)
-		.tabs(2)
+		.showWindow(false)
+		.tabs(4)
 		.launch(puppeteer);
 
 	const demoLinks = [
@@ -193,7 +193,7 @@ const run = async () => {
 		'https://www.decathlon.in/p/8326403/men-tracksuit/men-tracksuit-jacket-polyester-black?id=8326403&type=p',
 		'https://www.decathlon.in/p/8560956/skipping-ropes/skipping-rope-jr100?id=8560956&type=p',
 		'https://www.decathlon.in/p/8731509/backpacks/hiking-backpack-10-l-nh-arpenaz-50?id=8731509&type=p'
-	].splice(0,5);
+	].splice(0,160);
 
 	const amazonLinks = [
 		'https://www.amazon.in/Engage-Cool-Marine-Pocket-Perfume/dp/B079H12TC8/ref=sr_1_156?crid=3GFMFR248N1O3&keywords=perfumes&qid=1704825966&sprefix=perfumes%2Caps%2C559&sr=8-156',
@@ -209,15 +209,14 @@ const run = async () => {
 			link,
 			[
 				new Selector(
-					'price',
-					'span.text-26',
+					'product_name',
+					'h1.text-14',
 					(data) => data.trim()
 				),
-				// new Selector(
-				// 	'price',
-				// 	'span.a-price-whole',
-				// 	(data) => data.substring(0,data.length-1)
-				// ),
+				new Selector(
+					'price',
+					'span.text-266'
+				),
 				// new Selector(
 				// 	'rating',
 				// 	// 'span#acrPopover > span.a-declarative > a > span',

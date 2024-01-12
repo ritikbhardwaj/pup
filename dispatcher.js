@@ -14,7 +14,7 @@ export default class Dispatcher {
 			page.pageEmitter.on('fetchcomplete', () => {
 				if(this._scrapeTasks.length) {
 					page.fetch(this._scrapeTasks.pop()).then((data) => {
-						console.log('Data: ', data);
+						console.log(data);
 					});
 				} else {
 					page.close();
@@ -29,7 +29,7 @@ export default class Dispatcher {
 		this._pages.forEach(async (page, index) => {
 			await page.init();
 			page.fetch(this._scrapeTasks.pop()).then((data) => {
-				console.log('Data: ', data);
+				console.log(data);
 			})
 		});
 	}

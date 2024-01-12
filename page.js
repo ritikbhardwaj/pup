@@ -3,6 +3,11 @@ import { randomUUID } from 'node:crypto';
 import ScrapeTask, { SelectorState, TaskState } from './scrape-task.js';
 import HasState from './state.js';
 
+export const PageResponseStatus = {
+	Resolved : 'pageresolved',
+	Error    : 'pageerror'
+};
+
 export const PageState = {
 	Initial        : 'initial',	
 	ReadyToProcess : 'readytoprocess',
@@ -74,7 +79,6 @@ export default class Page extends HasState {
 
 	// Fetch all selectors
 	fetch = async (scrapeTask, urlPrefix = '') => {
-		console.log(this.state);
 		if (this.state !== PageState.ReadyToProcess) throw new Error('Page is not ready to process');
 		if (!(scrapeTask instanceof ScrapeTask)) throw new Error('Invalid scrape task');
 
@@ -86,11 +90,16 @@ export default class Page extends HasState {
 			await this._ref.goto(link, { waitUntil: 'domcontentloaded', timeout: scrapeTask.pgNavigationTimeout });
 		} catch(error) {
 			const { message } = error;
-			this.setState(PageState.Error).reason(message);
+			// this.setState(PageState.Error).reason(message);
 			for(const selector of scrapeTask.selectors) {
 				selector.setState(SelectorState.Failed).reason(message);
 			}
-			return Promise.reject(message);
+			this._pageEmitter.emit('fetchcomplete');
+			return Promise.resolve({
+				status: PageResponseStatus.Error,
+				url: scrapeTask.url,
+				message
+			});
 		}
 
 		for (const selector of scrapeTask.selectors) {
@@ -99,7 +108,11 @@ export default class Page extends HasState {
 
 		return Promise.allSettled(valuePromises).then((values) => {
 			this._pageEmitter.emit('fetchcomplete');
-			return Promise.resolve(values);
+			return Promise.resolve({
+				status: PageResponseStatus.Resolved,
+				url: scrapeTask.url,
+				data: values
+			});
 		});
 	};
 
