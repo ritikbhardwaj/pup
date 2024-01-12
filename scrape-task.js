@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 
 export const SelectorType = {
 	XPath       : 'xpath',
@@ -33,7 +34,7 @@ export class Selector {
 			this._type     = type;
 			// Default: 5s
 			this._timeout  = timeout;
-			this._state    = { s: SelectorState.Pending, reason: '' }; 
+			this.setState(SelectorState.Pending).reason('');
 	}
 
 	get filter() {
@@ -71,12 +72,22 @@ export class Selector {
 export default class ScrapeTask {
 	// Public	
 	constructor(name, url, selectors = [], pgNavigationTimeout = 5000) {
+		this._id = randomUUID().replaceAll('-','');
 		this._name      = name;
 		this._url       = url;
 		this._selectors = selectors;
-		this._state     = { s: TaskState.Pending, reason: '' };
+		this.setState(TaskState.Pending).reason('');
 		// Default: 5s
 		this._pgNavigationTimeout = pgNavigationTimeout;
+	}
+
+	printDebugInfo = () => {
+		let selectors = '';
+		for(const selector of this._selectors) {
+			selectors += selector.key+',';
+		}
+		let str = `Scrape Task:${this._id}\nName: ${this._name}\nUrl: ${this._url}\nSelectors: ${selectors}`;
+		console.log(str,'\n');
 	}
 
 	get url () {
@@ -89,8 +100,12 @@ export default class ScrapeTask {
 	}
 
 	reason = (reason) => {
-		if(typeof reason !== 'string') throw new TypeError('Reason must be string');
+		if(typeof reason !== 'string') throw new TypeError('Reason must be a string');
 		this._state.reason = reason;
+	}
+
+	get id() {
+		return this._id;
 	}
 
 	get state() {
