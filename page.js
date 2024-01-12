@@ -1,16 +1,20 @@
 import { EventEmitter } from 'node:events';
+import { randomUUID } from 'node:crypto';
 
-export let State = {
-	PENDING: 'pending',
-	READY: 'ready',
-	CLOSE: 'close',
+export const PageState = {
+	Processing : 'processing',
+	Standby    : 'standby',
+	Error      : 'error',
 };
 
 export default class Page extends EventEmitter {
 	// Public
 	constructor(browser, options = {}) {
 		super();
+		this._id = randomUUID().replaceAll('-', '');
+		this._ref = null;
 		this._browser = browser;
+		this._state.setState(PageState.Standby).reason('');
 		this._pageEmitter = new EventEmitter();
 	}
 
@@ -26,6 +30,16 @@ export default class Page extends EventEmitter {
 		}
 		// this._pageEmitter.emit('ready');
 	};
+
+	setState = (state) => {
+		this._state.s = state;
+		return this;
+	}
+
+	reason = (reason) => {
+		if(typeof reason !== 'string') throw new TypeError('Reason must be a string');
+		this._state.reason = reason;
+	}
 
 	get state() {
 		this._state;
@@ -79,9 +93,9 @@ export default class Page extends EventEmitter {
 	};
 
 	//Private
-	_browser = null;
-	_id = 'page_id';
-	_ref = null;
-	_state = State.PENDING;
-	_pageEmitter = null;
+	_id;
+	_ref;
+	_browser;
+	_state;
+	_pageEmitter;
 }
