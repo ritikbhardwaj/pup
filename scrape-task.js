@@ -5,92 +5,35 @@ export const SelectorType = {
 };
 
 export const FetchDataType = {
-	TextProperty:    'text-property',
-	Attribute:       'attribute',
-	GenericProperty: 'generic-property'
+	TextProperty    : 'text-property',
+	Attribute       : 'attribute',
+	GenericProperty : 'generic-property'
 }
 
 const State = {
-	Resolved   : 'resolved',
-	Failed     : 'failed',
-	Pending    : 'pending'
+	Resolved : 'resolved',
+	Failed   : 'failed',
+	Pending  : 'pending'
 };
 const SelectorState = State;
-const TaskState = State;
-
-class FetchDataTypeBase {
-	constructor(type, property) {
-		this._fetchType = type;
-		this._fetchProp = property; 
-	}
-	setElement = (element) => this._elementRef = element;
-	getData = (attribute) => {};
-	_fetchType;
-	_fetchProp;
-	_elementRef;
-}
-
-export class FetchGeneric extends FetchDataTypeBase{
-	constructor(property) { super(FetchDataType.GenericProperty, property) };
-	getData = (arg) => {
-		if (this._elementRef === undefined) throw new Error('Data fetcher element undefined');
-		return this._elementRef[this._fetchProp]
-	};
-}
-
-export class FetchTextProperty extends FetchDataTypeBase{
-	constructor(property) { super(FetchDataType.TextProperty, property) };
-	getData = (arg) => { 
-		if (this._elementRef === undefined) throw new Error('Data fetcher element undefined');
-		return this._elementRef.textContent;
-	}
-}
-
-export class FetchAttribute extends FetchDataTypeBase{
-	constructor(property) { super(FetchDataType.Attribute, property) };
-	getData = () => {
-		if (this._elementRef === undefined) throw new Error('Data fetcher element undefined');
-		return this._elementRef.getProperty(this._fetchProp);
-	}
-}
+const TaskState     = State;
 
 export class Selector {
 	// Public
-	constructor(key, selector, filterFn = (value) => value,
-		opts = {},
-		dataFetcherType = FetchDataType.GenericProperty,
-		dataFetcherProp = 'textContent', 
-		type = SelectorType.CssSelector, timeout = 3000) {
-
-		this._selector = selector;
-		this._key = key;
-		this._type = type;
-		this._dataFetcher = new FetchGeneric(); 
-		this._data = '';
-		this._filterFn = filterFn;
-
-		this._opts = opts;
-
-		switch(dataFetcherType) {
-			case FetchDataType.GenericProperty:
-				this._dataFetcher = new FetchGeneric();
-				break;
-
-			case FetchDataType.Attribute:
-				this._dataFetcher = new FetchAttribute();
-				break;	
-
-			default:
-				this._dataFetcher = new FetchGeneric();
-				break;
-		} 
-
-		this._state = SelectorState.Pending; 
-		this._timeout = timeout;
-	}
-
-	get dataFetcher() {
-		return this._dataFetcher;
+	constructor(
+		key,
+		selector,
+		filterFn = (value) => value,
+		type = SelectorType.CssSelector,
+		timeout = 5000
+		) {
+			this._key      = key;
+			this._selector = selector;
+			this._filterFn = filterFn;
+			this._type     = type;
+			// Default: 5s
+			this._timeout  = timeout;
+			this._state    = { s: SelectorState.Pending, reason: '' }; 
 	}
 
 	get filter() {
@@ -107,42 +50,51 @@ export class Selector {
 
 	setState = (state) => {
 		this._state = state;
+		return this;
 	}
 
-	get data() {
-		return this._data;
-	}
-
-	set data (data) {
-		// check for data validity
-		this._data = data;
+	reason = (reason) => {
+		if(typeof reason !== 'string') throw new TypeError('Reason must be string');
+		this._state.reason = reason;
 	}
 
 	// Private
-	_selector;
-	_type;
-	_dataFetcher;
 	_key; 
+	_selector;
+	_type; 
 	_state; 
-	_data;
-	_opts;
 	_filterFn;
-	// Selector timeout. ie waitForSelector()
+	// Selector timeout. page.waitForSelector()
 	_timeout;
 };
 
 export default class ScrapeTask {
 	// Public	
-	constructor(url, selectors = [], timeout = 5000) {
-		this._url = url;
-		// this._name = name;
+	constructor(name, url, selectors = [], pgNavigationTimeout = 5000) {
+		this._name      = name;
+		this._url       = url;
 		this._selectors = selectors;
-		this._timeout = timeout;
-		this._state = TaskState.Pending;
+		this._state     = { s: TaskState.Pending, reason: '' };
+		// Default: 5s
+		this._pgNavigationTimeout = pgNavigationTimeout;
 	}
 
 	get url () {
 		return this._url;
+	}
+
+	setState = (s) => {
+		this._state.s = s;
+		return this;
+	}
+
+	reason = (reason) => {
+		if(typeof reason !== 'string') throw new TypeError('Reason must be string');
+		this._state.reason = reason;
+	}
+
+	get state() {
+		return this._state.s;
 	}
 
 	get selectors () {
@@ -155,7 +107,6 @@ export default class ScrapeTask {
 	_selectors;
 	_state; 
 	_url;
-
 	// Navigation timeout. page.goto()
-	_timeout;
+	_pgNavigationTimeout;
 };

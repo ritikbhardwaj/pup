@@ -205,6 +205,7 @@ const run = async () => {
 	const tasks = [];
 	for(const link of amazonLinks) {
 		tasks.push(new ScrapeTask(
+			'Amazon Product',
 			link,
 			[
 				new Selector(
