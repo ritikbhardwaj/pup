@@ -5,8 +5,9 @@ export default class Dispatcher {
 	// Public
 	constructor(browser, scrapeTasks = []) {
 
-		this._browser = browser;
-		this._pages = browser.pages;
+		this._browser     = browser;
+		this._pages       = browser.pages;
+		this._transport   = null;
 		this._scrapeTasks = scrapeTasks;
 
 		console.log('Total Links: ', scrapeTasks.length)
@@ -23,7 +24,7 @@ export default class Dispatcher {
 			});
 
 		});
-	}
+	};
 
 	// Loop cycle start point
 	start = () => {
@@ -34,9 +35,13 @@ export default class Dispatcher {
 				console.log(`Page: ${page.id} initialized with error.\nError: ${error}`);
 				return;
 			}
-			page.fetch(this._scrapeTasks.pop()).then((data) => {
-				console.log(data);
-			})
+			if(this._scrapeTasks.length) {
+				page.fetch(this._scrapeTasks.pop()).then((data) => {
+					console.log(data);
+				})
+			} else {
+				page.close();
+			}
 		});
 
 		if(this._pages.filter(p => p.state === PageState.ReadyToProcess).length === 0) {
@@ -48,4 +53,5 @@ export default class Dispatcher {
 	_pages;
 	_browser;
 	_scrapeTasks;
+	_transport;
 };

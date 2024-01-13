@@ -72,6 +72,7 @@ export default class Browser {
 	_TOTAL_PAGES = 0;
 	_browserRef = null;
 	_browserEvents = {};
+
 	_onBrowserCreated = async () => {
 		const version = await this._browserRef.version();
 		const userAgent = await this._browserRef.userAgent();
@@ -83,6 +84,7 @@ export default class Browser {
 	_onPageCreated = () => {
 		this._TOTAL_PAGES++;
 	}
+	
 	_onPageDestroyed = () => {
 		this._TOTAL_PAGES ? this._TOTAL_PAGES -= 1 : 0 ;
 		if(this._TOTAL_PAGES === 0) {

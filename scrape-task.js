@@ -26,8 +26,8 @@ export class Selector extends HasState {
 		key,
 		selector,
 		filterFn = (value) => value,
-		type = SelectorType.CssSelector,
-		timeout = 5000
+		timeout = 5000,
+		type = SelectorType.CssSelector
 		) {
 			super();
 			this._key      = key;

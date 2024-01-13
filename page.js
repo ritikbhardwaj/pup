@@ -18,11 +18,12 @@ export default class Page extends HasState {
 	// Public
 	constructor(browser, options = {}) {
 		super();
-		this._id = randomUUID().replaceAll('-', '');
-		this._ref = null;
-		this._browser = browser;
-		this.setState(PageState.Initial).reason('');
+		this._id          = randomUUID().replaceAll('-', '');
+		this._ref         = null;
+		this._browser     = browser;
 		this._pageEmitter = new EventEmitter();
+
+		this.setState(PageState.Initial).reason('');
 		this._pageEmitter.emit('initial');
 	}
 
@@ -77,16 +78,21 @@ export default class Page extends HasState {
 		} 
 		return {
 			key: sltr.key,
-			value: sltr.filter(value),
+			data: sltr.filter(value),
 		};
 	};
 
 	// Fetch all selectors
-	fetch = async (scrapeTask, urlPrefix = '') => {
+	fetch = async (scrapeTask, urlPrefix = 'https://www.') => {
+
+		const link = urlPrefix + scrapeTask.url;
+		const data = [];
+		const valuePromises = [];
+
 		if (this.state !== PageState.ReadyToProcess) {
 			return Promise.resolve({
 				status: PageResponseStatus.Error,
-				url: scrapeTask.url,
+				url: link,
 				message
 			});
 			// throw new Error('Page is not ready to process');
@@ -94,12 +100,9 @@ export default class Page extends HasState {
 
 		if (!(scrapeTask instanceof ScrapeTask)) throw new Error('Invalid scrape task');
 
-		const link = urlPrefix + scrapeTask.url;
-		const data = [];
-		const valuePromises = [];
 
 		try {
-			await this._ref.goto(link, { waitUntil: 'domcontentloaded', timeout: scrapeTask.pgNavigationTimeout });
+			await this._ref.goto(link, { timeout: scrapeTask.pgNavigationTimeout });
 		} catch(error) {
 			const { message } = error;
 			// this.setState(PageState.Error).reason(message);
@@ -109,7 +112,7 @@ export default class Page extends HasState {
 			this._pageEmitter.emit('fetchcomplete');
 			return Promise.resolve({
 				status: PageResponseStatus.Error,
-				url: scrapeTask.url,
+				url: link,
 				message
 			});
 		}
@@ -122,8 +125,8 @@ export default class Page extends HasState {
 			this._pageEmitter.emit('fetchcomplete');
 			return Promise.resolve({
 				status: PageResponseStatus.Resolved,
-				url: scrapeTask.url,
-				data: values
+				url: link,
+				selectors: values
 			});
 		});
 	};
@@ -133,4 +136,4 @@ export default class Page extends HasState {
 	_ref;
 	_browser;
 	_pageEmitter;
-}
+};
