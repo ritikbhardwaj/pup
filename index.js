@@ -3,7 +3,8 @@ import Browser from './browser.js';
 import { open } from 'node:fs/promises';
 import Dispatcher from './dispatcher.js';
 import ScrapeTask, { Selector, FetchDataType } from './scrape-task.js';
-import { Schema, DataTypes  } from './transport.js';
+import { Schema, DataTypes, LocalFileTransport  } from './transport.js';
+import FileOps, { FileWriteMode } from './fileops.js';
 
 const fetchUrlsFromFile = () => {
 	return new Promise(async (resolve, reject) => {
@@ -29,7 +30,7 @@ const fetchUrlsFromFile = () => {
 const run = async () => {
 	const __urls = await fetchUrlsFromFile();
 	const browser = await Browser.newBrowser()
-		.showWindow(true)
+		.showWindow(false)
 		.tabs(2)
 		.launch(puppeteer);
 
@@ -205,8 +206,9 @@ const run = async () => {
 		// 'https://www.amazon.in/Yardley-London-Morning-Compact-Perfume/dp/B07K2HD8T7/ref=pd_bxgy_img_d_sccl_1/261-6995092-7112216?pd_rd_w=H7nPd&content-id=amzn1.sym.2f895d58-7662-42b2-9a98-3a18d26bef33&pf_rd_p=2f895d58-7662-42b2-9a98-3a18d26bef33&pf_rd_r=73NSKFS3JCXDPCWAZB5R&pd_rd_wg=M5wrI&pd_rd_r=a6c2d63e-00ae-42da-aab8-19a3ec0f869c&pd_rd_i=B07K2HD8T7&psc=1',
 		// 'https://www.amazon.in/Orpat-OEH-1220-2000-Watt-Heater-White/dp/B00B7GHQQW/ref=zg_bs_c_kitchen_d_sccl_1/261-6995092-7112216?pd_rd_w=z868d&content-id=amzn1.sym.7dd29d48-66c1-486c-967d-2ed40101f2ea&pf_rd_p=7dd29d48-66c1-486c-967d-2ed40101f2ea&pf_rd_r=HCSCDR4ZVW8RF4J8GAPF&pd_rd_wg=Jl7db&pd_rd_r=f5bad811-e9cf-4297-a6fa-884334a46978&pd_rd_i=B00B7GHQQW&psc=1'		
 	]
+
 	const tasks = [];
-	for(const link of __urls.splice(0, __urls.length-1)) {
+	for(const link of amazonLinks) {
 		tasks.push(new ScrapeTask(
 			'Amazon',
 			link,
@@ -220,30 +222,51 @@ const run = async () => {
 				new Selector(
 					'price',
 					'span.a-price-whole',
-					(data) => data.trim(),
+					(data) => { 
+						const str = data.trim().replace(/[^0-9]/,'');
+						return parseInt(str);
+					},
 					20000
 				),
-				new Selector(
-					'rating',
-					'span#acrPopover > span.a-declarative > a > span',
-					(data) => data.trim(),
-					20000
-				),
-				new Selector(
-					'total_reviews',
-					'span#acrCustomerReviewText',
-					(data) => data.split(' ')[0],
-					20000
-				)
+				// new Selector(
+				// 	'rating',
+				// 	'span#acrPopover > span.a-declarative > a > span',
+				// 	(data) => data.trim(),
+				// 	20000
+				// ),
+				// new Selector(
+				// 	'total_reviews',
+				// 	'span#acrCustomerReviewText',
+				// 	(data) => data.split(' ')[0],
+				// 	20000
+				// )
 			],
 			10000
 		))
 	}
-	const dispatcher = new Dispatcher(browser, tasks);
+
+	const stdSchema = new Schema({
+		date         : DataTypes.STRING,
+		time         : DataTypes.STRING,
+		url          : DataTypes.STRING,
+		product_name : DataTypes.STRING,
+		price        : DataTypes.STRING
+	});
+
+	const localTransport = new LocalFileTransport('scrape_out.txt', './', FileWriteMode.OverrideExisting, stdSchema);
+	const dispatcher = new Dispatcher(browser, localTransport, tasks);
 	dispatcher.start();
 }
 
 run();
+
+// const fp = new FileOps('links.txt', './');
+// fp.checkFileExists('links.txt')
+// .then(value => {
+// 	console.log(value);
+// }).catch((error) => {
+// 	console.log(error);
+// });
 
 
 

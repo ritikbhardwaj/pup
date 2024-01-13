@@ -126,6 +126,7 @@ export default class Page extends HasState {
 			return Promise.resolve({
 				status: PageResponseStatus.Resolved,
 				url: link,
+				task_id: scrapeTask.id, 
 				selectors: values
 			});
 		});

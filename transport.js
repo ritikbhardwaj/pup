@@ -1,3 +1,5 @@
+import FileOps, { FileWriteMode } from './fileops.js';
+
 /**
  * Transport types enum. 
  */
@@ -62,7 +64,7 @@ export class Schema {
 		}
 		return isValid;
 	}
-	
+
 	_schema;
 };
 
@@ -74,6 +76,7 @@ class TransportBase {
 	constructor(opts, schema, type = TransportType.LocalStorage) {
 		if(this.constructor === TransportBase) throw new Error('Can\'t instantiate abstract base class TransportBase');
 		if(typeof opts !== 'object') throw new Error('Transports options must be an object.');
+		if(!(schema instanceof Schema)) throw new Error('Invalid schema object.');
 		this._transportOpts = opts;
 		this._schema = schema;
 		this.__transportType = type;
@@ -84,6 +87,11 @@ class TransportBase {
 	dataSchema = (schema) => {
 
 	}
+	
+	get schema() {
+		return this._schema;
+	}
+
 	isSchemaValid = () => {}
 	// removeData = () => { throw new Error(``); }
 	// updateData = () => { throw new Error(``); }
@@ -95,13 +103,36 @@ class TransportBase {
 };
 
 export class LocalFileTransport extends TransportBase {
-	constructor(opts, schema) {
-		super(opts, schema, TransportType.LocalStorage);
+	constructor(fileName, filePath, fileWriteMode, schema) {
+		super({ fileName, filePath }, schema, TransportType.LocalStorage);
+		this._fileOps = new FileOps(
+			fileName,
+			filePath,
+			FileWriteMode
+		);
 	}
 
-	checkConnection = async () => {}
-	connect = async () => {}
-	store = async () => {}
+	check = async () => {
+		try {
+			await this._fileOps.fileExists(); 
+		} catch(error) {
+			console.log('Error: ', error);
+		}
+	}
+
+	establish = async () => {
+		await this._fileOps.createFile();
+	}
+
+	store = async (data) => {
+		if(this._schema.isDataValid(data)) {
+			// console.log('[+]Data: ', data);
+		} else {
+			// console.log(`[!]Error: Invalid schema.\n[!]Data: ${data}`);
+		}
+	}
+	// Private
+	_fileOps;
 }
 
 export class MyqlDbTransport extends TransportBase {}
