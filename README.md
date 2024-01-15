@@ -10,6 +10,9 @@ Future Goals:
 
 - Use Node clusters or Web workers to spin up multiple instances to
   speed up the scraping process.
+- Add custom errors
+- Add logging and store logs in file locally for debugging
+- Write tests in jest
 
 #### Usage
 
