@@ -1,4 +1,6 @@
 import FileOps, { FileWriteMode } from './fileops.js';
+import { PageResponseStatus,  } from './page.js';
+import { getDate, getTime } from './utils.js';
 
 /**
  * Transport types enum. 
@@ -108,31 +110,84 @@ export class LocalFileTransport extends TransportBase {
 		this._fileOps = new FileOps(
 			fileName,
 			filePath,
-			FileWriteMode
+			fileWriteMode
 		);
+		this._NAME_SLICE = 20;
 	}
 
 	check = async () => {
 		try {
 			await this._fileOps.fileExists(); 
 		} catch(error) {
-			console.log('Error: ', error);
 		}
 	}
 
 	establish = async () => {
-		await this._fileOps.createFile();
+		return this._fileOps.createFile();
 	}
 
 	store = async (data) => {
-		if(this._schema.isDataValid(data)) {
-			// console.log('[+]Data: ', data);
-		} else {
-			// console.log(`[!]Error: Invalid schema.\n[!]Data: ${data}`);
+		const stub = {};
+		stub['status'] = 'null';
+		for(const key of Object.keys(this._schema._schema)) {
+			stub[key] = 'null';
+			if(key === 'date') {
+				stub['date'] = getDate();
+			}
+			if(key === 'time') {
+				stub['time'] = getTime();
+			}
+		}
+		const { status, url, task_id, selectors, message } = data;
+		stub['url']     = url;
+		stub['task_id'] = task_id;
+		stub['message'] = 'null';
+		if(status === PageResponseStatus.Resolved && Array.isArray(selectors) ) {
+
+			stub['status'] = PageResponseStatus.Resolved;
+			for(const s of data.selectors) {
+				if(s.status === 'fulfilled') {
+					const { key, data} = s.value;
+					stub[key] = data;
+				} else {
+					console.log(s.reason);
+				}	
+			}
+
+			if(this._schema.isDataValid(stub)) {
+				this._writeToFile(stub);	
+			} else {
+				const { task_id, date, time, product_name } = stub;
+				console.log(`Date:${date}|time:${time}|Product: ${product_name?.slice(0, this._NAME_SLICE)}... did not match schema.`)
+			}
+		} else if (status === PageResponseStatus.Error && message) {
+			stub['status'] = PageResponseStatus.Error;
+			const { task_id, message } = data;
+			stub['task_id'] = task_id;
+			stub['message'] = message;
+			if(this._schema.isDataValid(stub)) {
+				this._writeToFile(stub);
+			} else {
+				console.log(stub);
+				const { task_id, date, time, product_name } = stub;
+				console.log(`Date:${date}|time:${time}|Product: ${product_name.slice(0, this._NAME_SLICE)}... did not match schema.`)
+			}
 		}
 	}
+
 	// Private
+	_writeToFile = (stub) => {
+		this._fileOps.write(stub).then((stub) => {
+			const { product_name } = stub;
+			console.log(`Product: '${product_name.slice(0, this._NAME_SLICE)}...' written to file.`);
+		})
+		.catch((stub) => {
+			const { product_name } = stub;
+			console.log(`Product: '${product_name.slice(0, this._NAME_SLICE)}. 'Error writing to file.`);
+		})
+	}
 	_fileOps;
+	_NAME_SLICE;
 }
 
 export class MyqlDbTransport extends TransportBase {}

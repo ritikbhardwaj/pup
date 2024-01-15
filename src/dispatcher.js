@@ -17,9 +17,7 @@ export default class Dispatcher {
 			page.pageEmitter.on('fetchcomplete', () => {
 				if(this._scrapeTasks.length) {
 					page.fetch(this._scrapeTasks.pop()).then((data) => {
-						const s = this._getStoreObject(data);
-						console.log(s);
-						this._transport.store(s);
+						this._transport.store(data);
 					});
 				} else {
 					page.close();
@@ -42,40 +40,25 @@ export default class Dispatcher {
 				}
 				if(this._scrapeTasks.length) {
 					page.fetch(this._scrapeTasks.pop()).then((data) => {
-						const s = this._getStoreObject(data);
-						console.log(s);
-						this._transport.store(s);
+						// const s = this._getStoreObject(data);
+						// console.log(s);
+						this._transport.store(data);
 					})
 				} else {
 					page.close();
 				}
 			});
 
-			if(this._pages.filter(p => p.state === PageState.ReadyToProcess).length === 0) {
+			if(this._pages.filter(p => p.state === PageState.ReadyToProcess).length === 0 && this._scrapeTasks.length === 0) {
 				this._browser.close();
 			}
 		} catch(error) {
-			return Promise.reject(error);
+			console.log(error);
+			this._browser.close();
 		}
 	}
 
 	// Private
-
-	// temp
-	_getStoreObject = (data) => {
-		const store = {}
-		let v;
-		for(const selector of data.selectors.filter(selector => selector.status === 'fulfilled')) {
-			v = selector.value;
-			store[v.key] = v.data;
-		}
-		store.date = getDate();
-		store.time = getTime();
-		store.url = data.url;
-		store.task_id = data.task_id;
-		return store;
-	}
-
 	_pages;
 	_browser;
 	_scrapeTasks;

@@ -11,6 +11,15 @@ export const getDate = () => {
 	return formattedToday;
 }
 
+export const stringifyObject = (stub) => {
+	let str = '';				
+	for(const [key, value] of Object.entries(stub)) {
+		str += `${key}:${value}|`;
+	}
+	str += '\n';
+	return str;
+}
+
 export const getTime = () => {
 	var d = new Date();
 	var n = d.toLocaleTimeString();	
