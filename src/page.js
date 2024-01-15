@@ -100,7 +100,7 @@ export default class Page extends HasState {
 
 
 		try {
-			await this._ref.goto(link, { timeout: scrapeTask.pgNavigationTimeout });
+			await this._ref.goto(link, { timeout: scrapeTask.pgNavigationTimeout, waitUntil: 'domcontentloaded' });
 		} catch(error) {
 			const { message } = error;
 			// this.setState(PageState.Error).reason(message);
